@@ -1,0 +1,64 @@
+Inofrmation about datasets:
+
+Stores:
+Anonymized information about the 45 stores, indicating the type and size of store
+
+Features:
+Contains additional data related to the store, department, and regional activity for the given dates.
+Store - the store number
+Date - the week
+Temperature - average temperature in the region
+Fuel_Price - cost of fuel in the region
+MarkDown1-5 - anonymized data related to promotional markdowns. MarkDown data is only available after Nov 2011, and is not available for all stores all the time. Any missing value is marked with an NA
+CPI - the consumer price index
+Unemployment - the unemployment rate
+IsHoliday - whether the week is a special holiday week
+
+Sales:
+Historical sales data, which covers to 2010-02-05 to 2012-11-01. Within this tab you will find the following fields:
+Store - the store number
+Dept - the department number
+Date - the week
+Weekly_Sales -  sales for the given department in the given store
+IsHoliday - whether the week is a special holiday week
+
+
+Create mysql tables :
+
+create table retail_sales(store INT,dept INT,sale_date VARCHAR(20),weekly_sales VARCHAR(100),isholiday VARCHAR(100),check_date timestamp default CURRENT_TIMESTAMP);
+create table retail_stores(store INT,type VARCHAR(1),size INT,check_date timestamp default CURRENT_TIMESTAMP);
+create table retail_features(store INT,date VARCHAR(20),temperature VARCHAR(10),fuel_prize VARCHAR(15),markdown1 VARCHAR(20),markdown2 VARCHAR(20),markdown3 VARCHAR(20),markdown4 VARCHAR(20),markdown5 VARCHAR(20),cpi VARCHAR(20),unemployment VARCHAR(20),isholiday VARCHAR(20),check_date timestamp default CURRENT_TIMESTAMP);
+
+
+Load data inot mysql tables
+
+LOAD DATA LOCAL INFILE '/root/etl_retail/input_csv/sales_data_set.csv' 
+INTO TABLE retail_sales 
+FIELDS TERMINATED BY ',' 
+LINES TERMINATED BY '\n';
+
+LOAD DATA LOCAL INFILE '/root/etl_retail/pyspark_project_retail/input_csv/stores_data_set.csv' 
+INTO TABLE retail_stores 
+FIELDS TERMINATED BY ',' 
+LINES TERMINATED BY '\n';
+
+LOAD DATA LOCAL INFILE '/root/etl_retail/pyspark_project_retail/input_csv/features_data_set.csv' 
+INTO TABLE retail_features 
+FIELDS TERMINATED BY ',' 
+LINES TERMINATED BY '\n';
+
+Sqoop import into hive tables 
+
+sqoop import --bindir /usr/lib/sqoop --connect jdbc:mysql://localhost:3306/retail_db --username root --password Dees12345!  --split-by store --columns store,dept,sale_date,weekly_sales,isholiday,check_date --table retail_sales --incremental lastmodified --check-column check_date --last-value 0 --target-dir /retail_sales --fields-terminated-by "," --hive-import --hive-overwrite --hive-table retail_project.retail_sales
+
+sqoop import --bindir /usr/lib/sqoop --connect jdbc:mysql://localhost:3306/retail_db --username root --password Dees12345!  --split-by store --columns store,type,size,check_date --table retail_stores --incremental lastmodified --check-column check_date --last-value 0 --target-dir /retail_stores --fields-terminated-by "," --hive-import --hive-overwrite --hive-table retail_project.retail_stores
+
+sqoop import --bindir /usr/lib/sqoop --connect jdbc:mysql://localhost:3306/retail_db --username root --password Dees12345!  --split-by store --columns store,date,temperature,fuel_prize,markdown1,markdown2,markdown3,markdown4,markdown5,cpi,unemployment,isholiday,check_date --table retail_features --incremental lastmodified --check-column check_date --last-value 0 --target-dir /retail_features --fields-terminated-by "," --hive-import --hive-overwrite --hive-table retail_project.retail_features
+
+
+
+
+Run the pyspark program :
+
+spark-submit  /home/reallegendscorp9155/pyspark_project_retail/py_spark.py
+
